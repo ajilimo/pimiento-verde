@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Task Coordinator</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <span class="nav-brand">⚡ Task Coordinator</span>
+      <div class="nav-links">
+        <a href="/">Nueva Tarea</a>
+        <a href="/dashboard" class="active">Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container wide">
+    <div class="dashboard-header">
+      <h1>Dashboard</h1>
+      <button id="refreshBtn" class="btn btn-secondary btn-sm">↻ Actualizar</button>
+    </div>
+
+    <div class="filters">
+      <select id="filterAssignee">
+        <option value="">Todos los responsables</option>
+      </select>
+      <select id="filterPriority">
+        <option value="">Todas las prioridades</option>
+        <option value="high">Alta 🔴</option>
+        <option value="medium">Media 🟡</option>
+        <option value="low">Baja 🟢</option>
+      </select>
+      <input type="text" id="filterClient" placeholder="Filtrar por cliente...">
+    </div>
+
+    <div id="loading" class="loading">Cargando tareas...</div>
+
+    <div class="kanban hidden" id="kanban">
+      <div class="kanban-col">
+        <div class="kanban-col-header status-pendiente">
+          <span class="col-title">Pendiente</span>
+          <span class="col-count" id="count-pendiente">0</span>
+        </div>
+        <div class="kanban-cards" id="col-pendiente"></div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-header status-en-desarrollo">
+          <span class="col-title">En Desarrollo</span>
+          <span class="col-count" id="count-en-desarrollo">0</span>
+        </div>
+        <div class="kanban-cards" id="col-en-desarrollo"></div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-header status-en-pausa">
+          <span class="col-title">En Pausa</span>
+          <span class="col-count" id="count-en-pausa">0</span>
+        </div>
+        <div class="kanban-cards" id="col-en-pausa"></div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-header status-listo">
+          <span class="col-title">Listo ✓</span>
+          <span class="col-count" id="count-listo">0</span>
+        </div>
+        <div class="kanban-cards" id="col-listo"></div>
+      </div>
+    </div>
+
+    <div id="empty-state" class="empty-state hidden">
+      <p>No hay tareas que coincidan con los filtros.</p>
+      <a href="/" class="btn btn-primary" style="margin-top:1rem;display:inline-flex">+ Nueva Tarea</a>
+    </div>
+  </main>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

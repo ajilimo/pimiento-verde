@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva Tarea — Task Coordinator</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <span class="nav-brand">⚡ Task Coordinator</span>
+      <div class="nav-links">
+        <a href="/" class="active">Nueva Tarea</a>
+        <a href="/dashboard">Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <h1>Nueva Tarea</h1>
+
+    <section class="card" id="input-section">
+      <h2>Mensaje del cliente</h2>
+      <div class="form-group">
+        <label for="raw">Pegá el texto del WhatsApp o email</label>
+        <textarea id="raw" rows="6" placeholder="Ej: Hola, el cliente necesita arreglar urgente el formulario de contacto de su página para el viernes, está roto y no llegan los mails..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="clientHint">Cliente (opcional)</label>
+          <input type="text" id="clientHint" placeholder="Nombre del cliente">
+        </div>
+        <div class="form-group">
+          <label for="source">Origen</label>
+          <select id="source">
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="Email">Email</option>
+            <option value="Manual">Manual</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="screenshotDesc">Descripción de la captura de pantalla (opcional)</label>
+        <textarea id="screenshotDesc" rows="2" placeholder="Describí lo que muestra el screenshot adjunto..."></textarea>
+      </div>
+      <button id="parseBtn" class="btn btn-primary">
+        <span id="parseBtnText">Analizar con IA</span>
+        <span id="parseSpinner" class="spinner hidden"></span>
+      </button>
+    </section>
+
+    <section class="card hidden" id="review-section">
+      <h2>Revisar y confirmar</h2>
+      <div class="form-group">
+        <label for="title">Título</label>
+        <input type="text" id="title" maxlength="60">
+        <small class="char-count"><span id="titleCount">0</span>/60</small>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="client">Cliente</label>
+          <input type="text" id="client">
+        </div>
+        <div class="form-group">
+          <label for="assignee">Responsable</label>
+          <select id="assignee">
+            <option value="">— Sin asignar —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="priority">Prioridad</label>
+          <select id="priority">
+            <option value="high">Alta 🔴</option>
+            <option value="medium" selected>Media 🟡</option>
+            <option value="low">Baja 🟢</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="deadline">Deadline</label>
+          <input type="date" id="deadline">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="description">Descripción</label>
+        <textarea id="description" rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Tags</label>
+        <div id="tags-chips" class="tags-chips"></div>
+      </div>
+      <div class="form-actions">
+        <button id="backBtn" class="btn btn-secondary">← Volver</button>
+        <button id="createBtn" class="btn btn-success">
+          <span id="createBtnText">Crear Tarea</span>
+          <span id="createSpinner" class="spinner hidden"></span>
+        </button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast hidden"></div>
+  </main>
+
+  <script src="/js/intake.js"></script>
+</body>
+</html>
