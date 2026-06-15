@@ -13,6 +13,7 @@
       <div class="nav-links">
         <a href="/" class="active">Nueva Tarea</a>
         <a href="/dashboard">Dashboard</a>
+        <a href="/resumen">Resumen</a>
       </div>
     </div>
   </nav>
@@ -39,6 +40,11 @@
             <option value="Manual">Manual</option>
           </select>
         </div>
+      </div>
+      <div class="form-group">
+        <label for="screenshotFile">Captura de pantalla (opcional)</label>
+        <input type="file" id="screenshotFile" accept="image/*">
+        <small class="char-count" id="screenshotFileName"></small>
       </div>
       <div class="form-group">
         <label for="screenshotDesc">Descripción de la captura de pantalla (opcional)</label>

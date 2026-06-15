@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resumen — Task Coordinator</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <span class="nav-brand">⚡ Task Coordinator</span>
+      <div class="nav-links">
+        <a href="/">Nueva Tarea</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/resumen" class="active">Resumen</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container wide">
+    <div class="dashboard-header">
+      <h1>Resumen</h1>
+      <button id="refreshBtn" class="btn btn-secondary btn-sm">↻ Actualizar</button>
+    </div>
+
+    <div id="loading" class="loading">Cargando resumen...</div>
+
+    <div id="content" class="hidden">
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <div class="card">
+        <h2>Por responsable</h2>
+        <table class="summary-table" id="people-table">
+          <thead>
+            <tr><th>Persona</th><th>Pendiente</th><th>En Desarrollo</th><th>En Pausa</th><th>Total abiertas</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Vencidas</h2>
+        <div id="overdue-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/resumen.js"></script>
+</body>
+</html>

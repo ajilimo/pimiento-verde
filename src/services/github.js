@@ -31,8 +31,8 @@ function buildLabels(task) {
   return labels;
 }
 
-function buildIssueBody({ client, description, deadline, source }) {
-  return `## Cliente
+function buildIssueBody({ client, description, deadline, source, screenshotUrl }) {
+  let body = `## Cliente
 ${client || 'No especificado'}
 
 ## Descripción
@@ -42,10 +42,14 @@ ${description || ''}
 ${deadline || 'No especificado'}
 
 ## Origen
-${source || 'Manual'}
+${source || 'Manual'}`;
 
----
-*Creado vía Agency Task Coordinator*`;
+  if (screenshotUrl) {
+    body += `\n\n## Captura\n![captura](${screenshotUrl})`;
+  }
+
+  body += `\n\n---\n*Creado vía Agency Task Coordinator*`;
+  return body;
 }
 
 function mapIssue(issue) {
@@ -60,6 +64,7 @@ function mapIssue(issue) {
     return m ? m[1].trim() : null;
   };
   const tags = labelNames.filter(l => l.startsWith('type:')).map(l => l.slice(5));
+  const screenshotMatch = issue.body && issue.body.match(/## Captura\n!\[.*?\]\((.*?)\)/);
 
   return {
     id:        issue.id,
@@ -72,6 +77,7 @@ function mapIssue(issue) {
     status:    pick('status:')      || 'pendiente',
     tags,
     source:    bodyField('Origen'),
+    screenshotUrl: screenshotMatch ? screenshotMatch[1] : null,
     state:     issue.state,
     url:       issue.html_url,
     createdAt: issue.created_at,
@@ -108,6 +114,20 @@ async function ensureLabels(labelNames) {
       if (e.status !== 422) throw e;
     }
   }
+}
+
+async function uploadScreenshot(buffer, originalName, mimeType) {
+  const octokit = await getClient();
+  const { owner, repo } = config.github;
+  const ext = (originalName || '').split('.').pop().toLowerCase() || 'png';
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { data } = await octokit.repos.createOrUpdateFileContents({
+    owner, repo,
+    path: `screenshots/${filename}`,
+    message: `Captura: ${filename}`,
+    content: buffer.toString('base64'),
+  });
+  return data.content.download_url;
 }
 
 async function createTask(task) {
@@ -158,4 +178,4 @@ async function updateTaskStatus(issueNumber, newStatus) {
   return mapIssue(updated);
 }
 
-module.exports = { createTask, listTasks, updateTaskStatus };
+module.exports = { createTask, listTasks, updateTaskStatus, uploadScreenshot };

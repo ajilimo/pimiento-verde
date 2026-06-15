@@ -52,6 +52,11 @@ document.getElementById('title').addEventListener('input', e => {
   document.getElementById('titleCount').textContent = String(e.target.value.length);
 });
 
+document.getElementById('screenshotFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  document.getElementById('screenshotFileName').textContent = file ? file.name : '';
+});
+
 document.getElementById('parseBtn').addEventListener('click', async () => {
   const text = document.getElementById('raw').value.trim();
   if (!text) return showToast('Pegá un mensaje primero', 'error');
@@ -98,21 +103,19 @@ document.getElementById('createBtn').addEventListener('click', async () => {
   btn.disabled = true; btnText.textContent = 'Creando...'; spinner.classList.remove('hidden');
 
   try {
-    const task = {
-      title,
-      client:      document.getElementById('client').value.trim()   || null,
-      assignee:    document.getElementById('assignee').value         || null,
-      priority:    document.getElementById('priority').value,
-      deadline:    document.getElementById('deadline').value         || null,
-      description: document.getElementById('description').value.trim(),
-      tags:        [...selectedTags],
-      source:      document.getElementById('source').value,
-    };
-    const res = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(task),
-    });
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('client', document.getElementById('client').value.trim());
+    formData.append('assignee', document.getElementById('assignee').value);
+    formData.append('priority', document.getElementById('priority').value);
+    formData.append('deadline', document.getElementById('deadline').value);
+    formData.append('description', document.getElementById('description').value.trim());
+    formData.append('tags', JSON.stringify(selectedTags));
+    formData.append('source', document.getElementById('source').value);
+    const file = document.getElementById('screenshotFile').files[0];
+    if (file) formData.append('screenshot', file);
+
+    const res = await fetch('/api/tasks', { method: 'POST', body: formData });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al crear');
 
@@ -120,6 +123,8 @@ document.getElementById('createBtn').addEventListener('click', async () => {
     document.getElementById('raw').value = '';
     document.getElementById('clientHint').value = '';
     document.getElementById('screenshotDesc').value = '';
+    document.getElementById('screenshotFile').value = '';
+    document.getElementById('screenshotFileName').textContent = '';
     document.getElementById('review-section').classList.add('hidden');
     document.getElementById('input-section').classList.remove('hidden');
   } catch (e) {

@@ -110,6 +110,8 @@ function buildCard(task, today) {
          </div>` : ''}
     ${task.tags && task.tags.length
       ? `<div class="card-tags">${task.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>` : ''}
+    ${task.screenshotUrl
+      ? `<a href="${task.screenshotUrl}" target="_blank" rel="noopener" class="screenshot-link">📎 Ver captura</a>` : ''}
   `;
 
   // Toggle dropdown on badge click

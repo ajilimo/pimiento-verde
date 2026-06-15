@@ -19,6 +19,9 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/dashboard', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 
+app.get('/resumen', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'resumen.html')));
+
 // Central error handler
 app.use((err, req, res, _next) => {
   console.error(err);
