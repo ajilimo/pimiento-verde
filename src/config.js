@@ -11,12 +11,12 @@ const teamMembers = (process.env.TEAM_MEMBERS || 'John,Maria,Carlos')
 
 module.exports = {
   port: process.env.PORT || 3000,
-  anthropicApiKey: required('ANTHROPIC_API_KEY'),
+  geminiApiKey: required('GEMINI_API_KEY'),
   github: {
     token: required('GITHUB_TOKEN'),
     owner: required('GITHUB_OWNER'),
     repo: required('GITHUB_REPO'),
   },
   teamMembers,
-  model: 'claude-haiku-4-5',
+  model: 'gemini-1.5-flash',
 };

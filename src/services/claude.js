@@ -1,17 +1,17 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const config = require('../config');
 
-const client = new Anthropic({ apiKey: config.anthropicApiKey });
+const genAI = new GoogleGenerativeAI(config.geminiApiKey);
 
 const ALLOWED_PRIORITIES = ['high', 'medium', 'low'];
 const ALLOWED_TAGS = ['design', 'development', 'maintenance', 'content', 'urgent'];
 
-function buildSystemPrompt(today, teamList) {
-  return `Eres un asistente que convierte mensajes desordenados (de WhatsApp o email, en español, inglés o spanglish) en una tarea estructurada para una agencia de diseño web.
+function buildPrompt(today, teamList, rawText, clientHint, screenshotDesc) {
+  let content = `Eres un asistente que convierte mensajes desordenados (de WhatsApp o email, en español, inglés o spanglish) en una tarea estructurada para una agencia de diseño web.
 
 Hoy es ${today}. Los miembros del equipo son: ${teamList.join(', ')}.
 
-Devuelve EXCLUSIVAMENTE un objeto JSON válido, sin texto adicional, sin markdown, con EXACTAMENTE estas claves:
+Devuelve EXCLUSIVAMENTE un objeto JSON válido con EXACTAMENTE estas claves:
 
 {
   "title":       string (máx 60 caracteres, claro y conciso),
@@ -26,15 +26,14 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido, sin texto adicional, sin markdow
 Reglas:
 - Si un dato no aparece, usa null (o [] para tags).
 - "assignee" debe coincidir EXACTAMENTE con un nombre del equipo o ser null.
-- No inventes clientes ni fechas.`;
-}
+- No inventes clientes ni fechas.
 
-function extractJson(text) {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced) return fenced[1].trim();
-  const braceMatch = text.match(/\{[\s\S]*\}/);
-  if (braceMatch) return braceMatch[0];
-  return text;
+Mensaje a procesar:
+${rawText}`;
+
+  if (clientHint) content += `\n\n[Cliente sugerido]: ${clientHint}`;
+  if (screenshotDesc) content += `\n\n[Descripción de captura]: ${screenshotDesc}`;
+  return content;
 }
 
 function normalize(data, teamMembers) {
@@ -51,22 +50,16 @@ function normalize(data, teamMembers) {
 
 async function parseTask(rawText, { clientHint, screenshotDesc } = {}) {
   const today = new Date().toISOString().slice(0, 10);
-  const system = buildSystemPrompt(today, config.teamMembers);
+  const prompt = buildPrompt(today, config.teamMembers, rawText, clientHint, screenshotDesc);
 
-  let userContent = rawText;
-  if (clientHint) userContent += `\n\n[Cliente sugerido]: ${clientHint}`;
-  if (screenshotDesc) userContent += `\n\n[Descripción de captura]: ${screenshotDesc}`;
-
-  const resp = await client.messages.create({
+  const model = genAI.getGenerativeModel({
     model: config.model,
-    max_tokens: 1024,
-    system,
-    messages: [{ role: 'user', content: userContent }],
+    generationConfig: { responseMimeType: 'application/json' },
   });
 
-  const text = resp.content[0].text.trim();
-  const jsonStr = extractJson(text);
-  const data = JSON.parse(jsonStr);
+  const result = await model.generateContent(prompt);
+  const text = result.response.text().trim();
+  const data = JSON.parse(text);
   return normalize(data, config.teamMembers);
 }
 
