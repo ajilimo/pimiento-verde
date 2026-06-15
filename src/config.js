@@ -18,5 +18,5 @@ module.exports = {
     repo: required('GITHUB_REPO'),
   },
   teamMembers,
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.5-flash',
 };
