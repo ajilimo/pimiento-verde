@@ -178,4 +178,7 @@ document.getElementById('filterClient').addEventListener('input', () => {
 });
 document.getElementById('refreshBtn').addEventListener('click', loadTasks);
 
+const AUTO_REFRESH_MS = 15 * 60 * 1000;
+setInterval(loadTasks, AUTO_REFRESH_MS);
+
 init();

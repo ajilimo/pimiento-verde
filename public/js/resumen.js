@@ -95,4 +95,8 @@ function esc(str) {
 }
 
 document.getElementById('refreshBtn').addEventListener('click', load);
+
+const AUTO_REFRESH_MS = 15 * 60 * 1000;
+setInterval(load, AUTO_REFRESH_MS);
+
 load();
