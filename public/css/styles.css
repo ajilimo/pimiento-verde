@@ -261,6 +261,47 @@ textarea { resize: vertical; min-height: 80px; }
 .overdue-item:last-child { border-bottom: none; }
 .overdue-meta { font-size: 0.75rem; color: var(--texto-suave); }
 
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(35,14,0,0.55);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.modal {
+  background: #fff; border-radius: 8px; width: 100%; max-width: 580px;
+  max-height: 90vh; display: flex; flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+.modal-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--borde); gap: 1rem;
+}
+.modal-title {
+  font-family: 'Dela Gothic One', sans-serif; font-size: 1rem;
+  color: var(--principal); line-height: 1.4;
+}
+.modal-close {
+  background: none; border: none; font-size: 1.5rem; cursor: pointer;
+  color: var(--texto-suave); line-height: 1; flex-shrink: 0;
+  padding: 0; transition: color 0.15s;
+}
+.modal-close:hover { color: var(--principal); }
+.modal-body {
+  padding: 1.25rem 1.5rem; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.modal-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.modal-description {
+  font-size: 0.9rem; color: var(--texto-suave); line-height: 1.7;
+  background: var(--fondo); border-radius: 6px; padding: 0.875rem 1rem;
+  border: 1px solid var(--borde); white-space: pre-wrap; word-break: break-word;
+}
+.modal-empty { font-size: 0.875rem; color: var(--texto-suave); font-style: italic; }
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 0.75rem;
+  padding-top: 0.75rem; border-top: 1px solid var(--borde);
+}
+
 /* ── Responsive ── */
 @media (max-width: 1100px) {
   .kanban { grid-template-columns: repeat(2, 1fr); }

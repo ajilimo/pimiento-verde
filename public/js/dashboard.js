@@ -145,8 +145,60 @@ function buildCard(task, today) {
     });
   });
 
+  // Open modal on card click (except status badge and title link)
+  card.style.cursor = 'pointer';
+  card.addEventListener('click', e => {
+    if (e.target.closest('.status-badge-wrap') || e.target.closest('.card-title')) return;
+    openModal(task);
+  });
+
   return card;
 }
+
+function openModal(task) {
+  const today = new Date().toISOString().slice(0, 10);
+  const isOverdue = task.deadline && task.deadline !== 'No especificado' && task.deadline < today;
+
+  document.getElementById('modal-title').textContent = task.title;
+
+  const assigneeHtml = task.assignee ? `
+    <span style="display:inline-flex;align-items:center;gap:0.3rem">
+      <span class="avatar" style="background:${avatarColor(task.assignee)}">${initials(task.assignee)}</span>
+      ${esc(task.assignee)}
+    </span>` : '';
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-meta">
+      <span class="status-badge status-${task.status || 'pendiente'}">${STATUS_LABELS[task.status] || task.status}</span>
+      <span class="priority-badge priority-${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span>
+      ${task.client ? `<span class="meta-client">📁 ${esc(task.client)}</span>` : ''}
+      ${assigneeHtml}
+      ${task.deadline && task.deadline !== 'No especificado'
+        ? `<span class="deadline${isOverdue ? ' overdue' : ''}">📅 ${task.deadline}${isOverdue ? ' · Vencida' : ''}</span>` : ''}
+    </div>
+    ${task.description
+      ? `<div class="modal-description">${esc(task.description)}</div>`
+      : '<p class="modal-empty">Sin descripción.</p>'}
+    ${task.tags && task.tags.length
+      ? `<div class="card-tags">${task.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>` : ''}
+    ${task.screenshotUrl
+      ? `<a href="${task.screenshotUrl}" target="_blank" rel="noopener" class="screenshot-link">📎 Ver captura adjunta</a>` : ''}
+    <div class="modal-footer">
+      <a href="${task.url}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Ver en GitHub ↗</a>
+      <button class="btn btn-primary btn-sm" onclick="closeModal()">Cerrar</button>
+    </div>
+  `;
+
+  document.getElementById('task-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('task-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 // Close all dropdowns when clicking outside
 document.addEventListener('click', () => {

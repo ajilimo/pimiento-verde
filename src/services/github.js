@@ -65,22 +65,24 @@ function mapIssue(issue) {
   };
   const tags = labelNames.filter(l => l.startsWith('type:')).map(l => l.slice(5));
   const screenshotMatch = issue.body && issue.body.match(/## Captura\n!\[.*?\]\((.*?)\)/);
+  const descMatch = issue.body && issue.body.match(/## Descripción\n([\s\S]*?)(?=\n## |\n---)/);
 
   return {
-    id:        issue.id,
-    number:    issue.number,
-    title:     issue.title,
-    client:    bodyField('Cliente')  || pick('client:'),
-    assignee:  pick('assignee:'),
-    priority:  pick('priority:')    || 'medium',
-    deadline:  bodyField('Deadline'),
-    status:    pick('status:')      || 'pendiente',
+    id:          issue.id,
+    number:      issue.number,
+    title:       issue.title,
+    client:      bodyField('Cliente')  || pick('client:'),
+    assignee:    pick('assignee:'),
+    priority:    pick('priority:')    || 'medium',
+    deadline:    bodyField('Deadline'),
+    status:      pick('status:')      || 'pendiente',
+    description: descMatch ? descMatch[1].trim() : null,
     tags,
-    source:    bodyField('Origen'),
+    source:      bodyField('Origen'),
     screenshotUrl: screenshotMatch ? screenshotMatch[1] : null,
-    state:     issue.state,
-    url:       issue.html_url,
-    createdAt: issue.created_at,
+    state:       issue.state,
+    url:         issue.html_url,
+    createdAt:   issue.created_at,
   };
 }
 
