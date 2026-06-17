@@ -313,3 +313,89 @@ textarea { resize: vertical; min-height: 80px; }
   .filters input, .filters select { max-width: 100%; }
   .dashboard-header { flex-wrap: wrap; gap: 0.5rem; }
 }
+
+/* ── Archive feature ── */
+.task-card.archived {
+  opacity: 0.55;
+  filter: grayscale(0.4);
+}
+.archived-badge {
+  font-size: 0.68rem; font-weight: 600; padding: 0.2rem 0.5rem;
+  border-radius: 20px; background: var(--fondo); color: var(--texto-suave);
+  border: 1px solid var(--borde); white-space: nowrap; letter-spacing: 0.02em;
+}
+.show-archived-toggle {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.85rem; color: var(--texto-suave); cursor: pointer;
+  user-select: none;
+}
+
+/* ── Subtasks feature ── */
+.progress-chip {
+  display: inline-block; font-size: 0.68rem; padding: 0.15rem 0.45rem;
+  border-radius: 3px; background: var(--fondo); border: 1px solid var(--borde);
+  color: var(--texto-suave); line-height: 1.4;
+}
+.subtask-list {
+  display: flex; flex-direction: column; gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+.subtask-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.875rem; color: var(--principal);
+}
+.subtask-row input[type="checkbox"] {
+  accent-color: var(--acento); flex-shrink: 0;
+}
+.subtask-row.done {
+  text-decoration: line-through; color: var(--texto-suave);
+}
+.subtask-add {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.subtask-add input[type="text"] { flex: 1; }
+
+/* ── Comments feature ── */
+.modal-comments {
+  display: flex; flex-direction: column; gap: 0.75rem;
+  max-height: 240px; overflow-y: auto; padding-right: 0.25rem;
+}
+.comment {
+  background: var(--fondo); border: 1px solid var(--borde);
+  border-radius: 6px; padding: 0.6rem 0.75rem;
+}
+.comment-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 0.25rem;
+}
+.comment-author {
+  font-weight: 600; font-size: 0.8rem; color: var(--principal);
+}
+.comment-time {
+  font-size: 0.7rem; color: var(--texto-suave);
+}
+.comment-body {
+  font-size: 0.85rem; color: var(--texto-suave); line-height: 1.5;
+  white-space: pre-wrap; word-break: break-word;
+}
+.comment-empty {
+  font-style: italic; color: var(--texto-suave); font-size: 0.85rem;
+}
+.comment-form {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  margin-top: 0.5rem; border-top: 1px solid var(--borde); padding-top: 0.75rem;
+}
+.comment-form-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+}
+.comment-author-select {
+  max-width: 160px;
+}
+
+/* ── Modal section title ── */
+.modal-section-title {
+  font-family: 'Dela Gothic One', sans-serif; font-size: 0.7rem;
+  color: var(--acento-dark); text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 0.4rem; margin-top: 0.25rem;
+}

@@ -8,12 +8,14 @@ const STATUS_LABELS = {
 const PRIORITY_LABELS = { high: 'Alta', medium: 'Media', low: 'Baja' };
 
 let allTasks = [];
+let teamMembers = [];
 
 async function init() {
   try {
     const { team } = await fetch('/api/team').then(r => r.json());
+    teamMembers = team || [];
     const sel = document.getElementById('filterAssignee');
-    team.forEach(name => {
+    teamMembers.forEach(name => {
       const opt = document.createElement('option');
       opt.value = name; opt.textContent = name;
       sel.appendChild(opt);
@@ -22,12 +24,18 @@ async function init() {
   await loadTasks();
 }
 
+function showArchived() {
+  const el = document.getElementById('showArchived');
+  return !!(el && el.checked);
+}
+
 async function loadTasks() {
   document.getElementById('loading').classList.remove('hidden');
   document.getElementById('kanban').classList.add('hidden');
   document.getElementById('empty-state').classList.add('hidden');
   try {
-    const res = await fetch('/api/tasks?state=open');
+    const state = showArchived() ? 'all' : 'open';
+    const res = await fetch(`/api/tasks?state=${state}`);
     const { tasks } = await res.json();
     allTasks = tasks || [];
     renderBoard();
@@ -77,10 +85,12 @@ function renderBoard() {
 
 function buildCard(task, today) {
   const card = document.createElement('div');
-  card.className = 'task-card';
+  const isArchived = task.state === 'closed';
+  card.className = 'task-card' + (isArchived ? ' archived' : '');
 
   const isOverdue = task.deadline && task.deadline !== 'No especificado' && task.deadline < today;
   const otherStatuses = STATUSES.filter(s => s !== (task.status || 'pendiente'));
+  const prog = task.progress || { done: 0, total: 0 };
 
   card.innerHTML = `
     <div class="card-top">
@@ -98,8 +108,10 @@ function buildCard(task, today) {
       </div>
     </div>
     <div class="card-meta">
+      ${isArchived ? '<span class="archived-badge">Archivada</span>' : ''}
       ${task.client ? `<span class="meta-client">${esc(task.client)}</span>` : ''}
       <span class="priority-badge priority-${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span>
+      ${prog.total > 0 ? `<span class="progress-chip">✓ ${prog.done}/${prog.total}</span>` : ''}
       ${isOverdue || (task.deadline && task.deadline !== 'No especificado')
         ? `<span class="deadline${isOverdue ? ' overdue' : ''}">📅 ${task.deadline}</span>` : ''}
     </div>
@@ -167,8 +179,11 @@ function openModal(task) {
       ${esc(task.assignee)}
     </span>` : '';
 
+  const isArchived = task.state === 'closed';
+
   document.getElementById('modal-body').innerHTML = `
     <div class="modal-meta">
+      ${isArchived ? '<span class="archived-badge">Archivada</span>' : ''}
       <span class="status-badge status-${task.status || 'pendiente'}">${STATUS_LABELS[task.status] || task.status}</span>
       <span class="priority-badge priority-${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span>
       ${task.client ? `<span class="meta-client">📁 ${esc(task.client)}</span>` : ''}
@@ -183,14 +198,190 @@ function openModal(task) {
       ? `<div class="card-tags">${task.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>` : ''}
     ${task.screenshotUrl
       ? `<a href="${task.screenshotUrl}" target="_blank" rel="noopener" class="screenshot-link">📎 Ver captura adjunta</a>` : ''}
+
+    <div>
+      <div class="modal-section-title">Subtareas</div>
+      <div id="modal-subtasks"></div>
+    </div>
+
+    <div>
+      <div class="modal-section-title">Comentarios</div>
+      <div id="modal-comments"><p class="comment-empty">Cargando…</p></div>
+      <div class="comment-form">
+        <textarea id="comment-text" rows="2" placeholder="Escribe un comentario..."></textarea>
+        <div class="comment-form-row">
+          <select id="comment-author" class="comment-author-select">
+            ${teamMembers.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('')}
+          </select>
+          <button id="comment-send" class="btn btn-primary btn-sm">Comentar</button>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-footer">
       <a href="${task.url}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Ver en GitHub ↗</a>
+      <button id="archive-btn" class="btn btn-secondary btn-sm">${isArchived ? 'Reabrir' : 'Archivar'}</button>
       <button class="btn btn-primary btn-sm" onclick="closeModal()">Cerrar</button>
     </div>
   `;
 
+  renderSubtasks(task);
+  wireComments(task);
+  wireArchive(task);
+
   document.getElementById('task-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+}
+
+// ── Subtareas ──
+function renderSubtasks(task) {
+  const container = document.getElementById('modal-subtasks');
+  if (!container) return;
+  const subs = task.subtasks || [];
+  container.innerHTML = `
+    <div class="subtask-list">
+      ${subs.map((s, i) => `
+        <label class="subtask-row${s.done ? ' done' : ''}">
+          <input type="checkbox" data-idx="${i}" ${s.done ? 'checked' : ''}>
+          <span>${esc(s.text)}</span>
+        </label>`).join('') || '<p class="comment-empty">Sin subtareas.</p>'}
+    </div>
+    <div class="subtask-add">
+      <input type="text" id="subtask-new" placeholder="Nueva subtarea...">
+      <button id="subtask-add-btn" class="btn btn-secondary btn-sm">Añadir</button>
+    </div>
+  `;
+
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const idx = Number(cb.dataset.idx);
+      task.subtasks[idx].done = cb.checked;
+      saveSubtasks(task);
+    });
+  });
+
+  const addBtn = container.querySelector('#subtask-add-btn');
+  const addInput = container.querySelector('#subtask-new');
+  const doAdd = () => {
+    const text = addInput.value.trim();
+    if (!text) return;
+    task.subtasks = (task.subtasks || []).concat([{ text, done: false }]);
+    saveSubtasks(task);
+  };
+  addBtn.addEventListener('click', doAdd);
+  addInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+}
+
+async function saveSubtasks(task) {
+  try {
+    const res = await fetch(`/api/tasks/${task.number}/subtasks`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subtasks: task.subtasks }),
+    });
+    const updated = await res.json();
+    task.subtasks = updated.subtasks;
+    task.progress = updated.progress;
+    const t = allTasks.find(x => x.number === task.number);
+    if (t) { t.subtasks = updated.subtasks; t.progress = updated.progress; }
+    renderSubtasks(task);
+    renderBoard();
+  } catch (err) { console.error('Error guardando subtareas', err); }
+}
+
+// ── Comentarios ──
+async function wireComments(task) {
+  const authorSel = document.getElementById('comment-author');
+  if (authorSel) {
+    const saved = localStorage.getItem('commentAuthor');
+    if (saved && teamMembers.includes(saved)) authorSel.value = saved;
+    authorSel.addEventListener('change', () => localStorage.setItem('commentAuthor', authorSel.value));
+  }
+  const sendBtn = document.getElementById('comment-send');
+  if (sendBtn) sendBtn.addEventListener('click', () => postComment(task));
+  await loadComments(task.number);
+}
+
+async function loadComments(number) {
+  const box = document.getElementById('modal-comments');
+  if (!box) return;
+  try {
+    const { comments } = await fetch(`/api/tasks/${number}/comments`).then(r => r.json());
+    if (!comments || !comments.length) {
+      box.innerHTML = '<p class="comment-empty">Sin comentarios todavía.</p>';
+      return;
+    }
+    box.innerHTML = comments.map(c => `
+      <div class="comment">
+        <div class="comment-head">
+          <span class="comment-author">${esc(c.author)}</span>
+          <span class="comment-time">${timeAgo(c.createdAt)}</span>
+        </div>
+        <div class="comment-body">${esc(c.body)}</div>
+      </div>`).join('');
+  } catch (err) {
+    console.error('Error cargando comentarios', err);
+    box.innerHTML = '<p class="comment-empty">No se pudieron cargar los comentarios.</p>';
+  }
+}
+
+async function postComment(task) {
+  const textEl = document.getElementById('comment-text');
+  const authorEl = document.getElementById('comment-author');
+  const sendBtn = document.getElementById('comment-send');
+  const body = textEl.value.trim();
+  if (!body) return;
+  const author = authorEl ? authorEl.value : '';
+  sendBtn.disabled = true;
+  try {
+    await fetch(`/api/tasks/${task.number}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author, body }),
+    });
+    textEl.value = '';
+    await loadComments(task.number);
+  } catch (err) {
+    console.error('Error enviando comentario', err);
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+// ── Archivar ──
+function wireArchive(task) {
+  const btn = document.getElementById('archive-btn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const archived = task.state !== 'closed';
+    btn.disabled = true;
+    try {
+      await fetch(`/api/tasks/${task.number}/archive`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archived }),
+      });
+      closeModal();
+      await loadTasks();
+    } catch (err) {
+      console.error('Error archivando', err);
+      btn.disabled = false;
+    }
+  });
+}
+
+function timeAgo(iso) {
+  const then = new Date(iso).getTime();
+  if (!then) return '';
+  const secs = Math.round((Date.now() - then) / 1000);
+  if (secs < 60) return 'hace un momento';
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `hace ${mins} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `hace ${days} d`;
+  return new Date(iso).toLocaleDateString('es');
 }
 
 function closeModal() {
@@ -229,6 +420,8 @@ document.getElementById('filterClient').addEventListener('input', () => {
   debounce = setTimeout(renderBoard, 280);
 });
 document.getElementById('refreshBtn').addEventListener('click', loadTasks);
+const showArchivedEl = document.getElementById('showArchived');
+if (showArchivedEl) showArchivedEl.addEventListener('change', loadTasks);
 
 const AUTO_REFRESH_MS = 15 * 60 * 1000;
 setInterval(loadTasks, AUTO_REFRESH_MS);

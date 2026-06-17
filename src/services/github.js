@@ -67,6 +67,15 @@ function mapIssue(issue) {
   const screenshotMatch = issue.body && issue.body.match(/## Captura\n!\[.*?\]\((.*?)\)/);
   const descMatch = issue.body && issue.body.match(/## Descripción\n([\s\S]*?)(?=\n## |\n---)/);
 
+  const subSection = issue.body && issue.body.match(/## Subtareas\n([\s\S]*?)(?=\n## |\n---|$)/);
+  const subtasks = subSection
+    ? subSection[1].split('\n')
+        .map(l => l.match(/^- \[( |x)\] (.*)$/))
+        .filter(Boolean)
+        .map(m => ({ text: m[2].trim(), done: m[1] === 'x' }))
+    : [];
+  const progress = { done: subtasks.filter(s => s.done).length, total: subtasks.length };
+
   return {
     id:          issue.id,
     number:      issue.number,
@@ -78,11 +87,27 @@ function mapIssue(issue) {
     status:      pick('status:')      || 'pendiente',
     description: descMatch ? descMatch[1].trim() : null,
     tags,
+    subtasks,
+    progress,
     source:      bodyField('Origen'),
     screenshotUrl: screenshotMatch ? screenshotMatch[1] : null,
     state:       issue.state,
     url:         issue.html_url,
     createdAt:   issue.created_at,
+  };
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function mapComment(c) {
+  const m = c.body.match(/^\*\*(.+?):\*\*\s?([\s\S]*)$/);
+  return {
+    id:        c.id,
+    author:    m ? m[1] : ((c.user && c.user.login) || 'Equipo'),
+    body:      m ? m[2] : c.body,
+    createdAt: c.created_at,
   };
 }
 
@@ -180,4 +205,62 @@ async function updateTaskStatus(issueNumber, newStatus) {
   return mapIssue(updated);
 }
 
-module.exports = { createTask, listTasks, updateTaskStatus, uploadScreenshot };
+async function updateIssueBodySection(issueNumber, marker, newContent) {
+  const octokit = await getClient();
+  const { owner, repo } = config.github;
+  const { data: issue } = await octokit.issues.get({ owner, repo, issue_number: issueNumber });
+  const body = issue.body || '';
+  const section = `## ${marker}\n${newContent}`;
+  const sectionRe = new RegExp(`## ${escapeRegex(marker)}\\n[\\s\\S]*?(?=\\n\\n## |\\n\\n---|$)`);
+
+  let newBody;
+  if (sectionRe.test(body)) {
+    newBody = body.replace(sectionRe, section);
+  } else {
+    const footerRe = /\n\n---\n\*Creado vía/;
+    if (footerRe.test(body)) {
+      newBody = body.replace(footerRe, `\n\n${section}$&`);
+    } else {
+      newBody = `${body}\n\n${section}`;
+    }
+  }
+
+  const { data: updated } = await octokit.issues.update({
+    owner, repo, issue_number: issueNumber, body: newBody,
+  });
+  return mapIssue(updated);
+}
+
+async function setTaskArchived(issueNumber, archived) {
+  const octokit = await getClient();
+  const { owner, repo } = config.github;
+  const { data: updated } = await octokit.issues.update({
+    owner, repo, issue_number: issueNumber,
+    state: archived ? 'closed' : 'open',
+  });
+  return mapIssue(updated);
+}
+
+async function listComments(issueNumber) {
+  const octokit = await getClient();
+  const { owner, repo } = config.github;
+  const comments = await octokit.paginate(octokit.issues.listComments, {
+    owner, repo, issue_number: issueNumber, per_page: 100,
+  });
+  return comments.map(mapComment);
+}
+
+async function createComment(issueNumber, author, text) {
+  const octokit = await getClient();
+  const { owner, repo } = config.github;
+  const body = author ? `**${author}:** ${text}` : text;
+  const { data } = await octokit.issues.createComment({
+    owner, repo, issue_number: issueNumber, body,
+  });
+  return mapComment(data);
+}
+
+module.exports = {
+  createTask, listTasks, updateTaskStatus, uploadScreenshot,
+  updateIssueBodySection, setTaskArchived, listComments, createComment,
+};
