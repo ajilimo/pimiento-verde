@@ -244,24 +244,34 @@ async function listTagLabels() {
     .sort();
 }
 
-async function updateTaskMeta(issueNumber, { assignee, deadline }) {
+async function updateTaskMeta(issueNumber, { assignee, deadline, tags }) {
   const octokit = await getClient();
   const { owner, repo } = config.github;
   const { data: issue } = await octokit.issues.get({ owner, repo, issue_number: issueNumber });
 
   const updatePayload = { owner, repo, issue_number: issueNumber };
+  let labels = issue.labels.map(l => (typeof l === 'string' ? l : l.name));
+  let labelsDirty = false;
 
   if (assignee !== undefined) {
-    const current = issue.labels.map(l => (typeof l === 'string' ? l : l.name));
-    const withoutAssignee = current.filter(l => !l.startsWith('assignee:'));
+    labels = labels.filter(l => !l.startsWith('assignee:'));
     if (assignee) {
       const newLabel = `assignee:${assignee.toLowerCase()}`;
       await ensureLabels([newLabel]);
-      updatePayload.labels = [...withoutAssignee, newLabel];
-    } else {
-      updatePayload.labels = withoutAssignee;
+      labels.push(newLabel);
     }
+    labelsDirty = true;
   }
+
+  if (tags !== undefined) {
+    labels = labels.filter(l => !l.startsWith('type:'));
+    const typeLabels = tags.map(t => `type:${t}`);
+    if (typeLabels.length) await ensureLabels(typeLabels);
+    labels.push(...typeLabels);
+    labelsDirty = true;
+  }
+
+  if (labelsDirty) updatePayload.labels = labels;
 
   if (deadline !== undefined) {
     const body = issue.body || '';

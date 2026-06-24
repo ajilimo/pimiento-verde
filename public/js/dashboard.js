@@ -9,11 +9,16 @@ const PRIORITY_LABELS = { high: 'Alta', medium: 'Media', low: 'Baja' };
 
 let allTasks = [];
 let teamMembers = [];
+let knownTags = [];
 
 async function init() {
   try {
-    const { team } = await fetch('/api/team').then(r => r.json());
+    const [{ team }, { tags }] = await Promise.all([
+      fetch('/api/team').then(r => r.json()),
+      fetch('/api/tags').then(r => r.json()),
+    ]);
     teamMembers = team || [];
+    knownTags = tags || [];
     const sel = document.getElementById('filterAssignee');
     teamMembers.forEach(name => {
       const opt = document.createElement('option');
@@ -22,6 +27,10 @@ async function init() {
     });
   } catch (_) {}
   await loadTasks();
+}
+
+function tagLabel(tag) {
+  return tag.charAt(0).toUpperCase() + tag.slice(1).replace(/-/g, ' ');
 }
 
 function showArchived() {
@@ -211,8 +220,10 @@ function openModal(task) {
     ${task.description
       ? `<div class="modal-description">${esc(task.description)}</div>`
       : '<p class="modal-empty">Sin descripción.</p>'}
-    ${task.tags && task.tags.length
-      ? `<div class="card-tags">${task.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>` : ''}
+    <div>
+      <div class="modal-section-title">Tags</div>
+      <div id="modal-tags"></div>
+    </div>
     ${task.screenshotUrl
       ? `<a href="${task.screenshotUrl}" target="_blank" rel="noopener" class="screenshot-link">📎 Ver captura adjunta</a>` : ''}
 
@@ -246,6 +257,7 @@ function openModal(task) {
   wireComments(task);
   wireArchive(task);
   wireMeta(task);
+  wireTags(task);
 
   document.getElementById('task-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -364,6 +376,87 @@ async function postComment(task) {
   } finally {
     sendBtn.disabled = false;
   }
+}
+
+// ── Editar tags ──
+function wireTags(task) {
+  const container = document.getElementById('modal-tags');
+  if (!container) return;
+
+  let localTags = [...(task.tags || [])];
+  let localKnown = [...new Set([...knownTags, ...localTags])];
+
+  function renderTagsEdit() {
+    container.innerHTML = '';
+    const chipsDiv = document.createElement('div');
+    chipsDiv.className = 'tags-chips';
+
+    localKnown.forEach(tag => {
+      const chip = document.createElement('span');
+      chip.className = 'chip' + (localTags.includes(tag) ? ' active' : '');
+      chip.textContent = tagLabel(tag);
+      chip.title = tag;
+      chip.addEventListener('click', () => {
+        const i = localTags.indexOf(tag);
+        if (i >= 0) localTags.splice(i, 1); else localTags.push(tag);
+        renderTagsEdit();
+      });
+      chipsDiv.appendChild(chip);
+    });
+
+    const addRow = document.createElement('div');
+    addRow.className = 'chip-add-row';
+    addRow.innerHTML = `<input type="text" id="modal-tag-input" class="chip-add-input" placeholder="Nuevo tag...">
+      <button type="button" id="modal-tag-add-btn" class="btn btn-secondary btn-sm">+</button>`;
+    chipsDiv.appendChild(addRow);
+    container.appendChild(chipsDiv);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn btn-primary btn-sm';
+    saveBtn.style.marginTop = '0.5rem';
+    saveBtn.textContent = 'Guardar tags';
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando…';
+      try {
+        const updated = await fetch(`/api/tasks/${task.number}/meta`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tags: localTags }),
+        }).then(r => r.json());
+        task.tags = updated.tags || [];
+        const t = allTasks.find(x => x.number === task.number);
+        if (t) t.tags = task.tags;
+        localTags = [...task.tags];
+        task.tags.forEach(tag => { if (!knownTags.includes(tag)) knownTags.push(tag); });
+        localKnown = [...new Set([...knownTags, ...localTags])];
+        renderBoard();
+        renderTagsEdit();
+        saveBtn.textContent = '✓ Guardado';
+        setTimeout(() => { saveBtn.disabled = false; saveBtn.textContent = 'Guardar tags'; }, 1500);
+      } catch (err) {
+        console.error('Error guardando tags', err);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Guardar tags';
+      }
+    });
+    container.appendChild(saveBtn);
+
+    const input = container.querySelector('#modal-tag-input');
+    const addBtn = container.querySelector('#modal-tag-add-btn');
+    const doAdd = () => {
+      const val = input.value.trim().toLowerCase().replace(/\s+/g, '-');
+      if (!val || localTags.includes(val)) { input.value = ''; return; }
+      if (!localKnown.includes(val)) localKnown.push(val);
+      localTags.push(val);
+      input.value = '';
+      renderTagsEdit();
+    };
+    addBtn.addEventListener('click', doAdd);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+  }
+
+  renderTagsEdit();
 }
 
 // ── Editar meta (responsable / fecha) ──
