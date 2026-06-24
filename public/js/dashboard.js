@@ -191,6 +191,23 @@ function openModal(task) {
       ${task.deadline && task.deadline !== 'No especificado'
         ? `<span class="deadline${isOverdue ? ' overdue' : ''}">📅 ${task.deadline}${isOverdue ? ' · Vencida' : ''}</span>` : ''}
     </div>
+    <div class="meta-edit-section">
+      <div class="modal-section-title">Editar detalles</div>
+      <div class="meta-edit-row">
+        <label class="meta-edit-label">
+          <span>Responsable</span>
+          <select id="edit-assignee">
+            <option value="">Sin asignar</option>
+            ${teamMembers.map(m => `<option value="${esc(m)}"${(task.assignee || '').toLowerCase() === m.toLowerCase() ? ' selected' : ''}>${esc(m)}</option>`).join('')}
+          </select>
+        </label>
+        <label class="meta-edit-label">
+          <span>Fecha límite</span>
+          <input type="date" id="edit-deadline" value="${task.deadline && task.deadline !== 'No especificado' ? task.deadline : ''}">
+        </label>
+        <button id="save-meta-btn" class="btn btn-primary btn-sm">Guardar</button>
+      </div>
+    </div>
     ${task.description
       ? `<div class="modal-description">${esc(task.description)}</div>`
       : '<p class="modal-empty">Sin descripción.</p>'}
@@ -228,6 +245,7 @@ function openModal(task) {
   renderSubtasks(task);
   wireComments(task);
   wireArchive(task);
+  wireMeta(task);
 
   document.getElementById('task-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -346,6 +364,34 @@ async function postComment(task) {
   } finally {
     sendBtn.disabled = false;
   }
+}
+
+// ── Editar meta (responsable / fecha) ──
+function wireMeta(task) {
+  const btn = document.getElementById('save-meta-btn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const assignee = document.getElementById('edit-assignee').value;
+    const deadline = document.getElementById('edit-deadline').value || 'No especificado';
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      const updated = await fetch(`/api/tasks/${task.number}/meta`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignee: assignee || null, deadline }),
+      }).then(r => r.json());
+      const t = allTasks.find(x => x.number === task.number);
+      if (t) Object.assign(t, updated);
+      renderBoard();
+      closeModal();
+      openModal(Object.assign({}, task, updated));
+    } catch (err) {
+      console.error('Error guardando meta', err);
+      btn.disabled = false;
+      btn.textContent = 'Guardar';
+    }
+  });
 }
 
 // ── Archivar ──

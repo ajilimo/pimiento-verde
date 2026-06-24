@@ -252,6 +252,7 @@ textarea { resize: vertical; min-height: 80px; }
 .stat-card.stat-listo .stat-value         { color: #4d7c3b; }
 .stat-card.stat-warning .stat-value       { color: var(--acento-dark); }
 .stat-card.stat-danger .stat-value        { color: #9c5a42; }
+.stat-card.stat-success .stat-value       { color: #4d7c3b; }
 
 .summary-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 .summary-table th, .summary-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid var(--borde); }
@@ -391,6 +392,26 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .comment-author-select {
   max-width: 160px;
+}
+
+/* ── Modal meta edit ── */
+.meta-edit-section { margin-top: 0.5rem; }
+.meta-edit-row {
+  display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap;
+}
+.meta-edit-label {
+  display: flex; flex-direction: column; gap: 0.25rem;
+  font-size: 0.8rem; color: var(--texto-suave);
+}
+.meta-edit-label select,
+.meta-edit-label input[type="date"] {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  background: white;
+  color: var(--principal);
 }
 
 /* ── Modal section title ── */

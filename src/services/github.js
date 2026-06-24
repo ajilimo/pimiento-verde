@@ -231,6 +231,46 @@ async function updateIssueBodySection(issueNumber, marker, newContent) {
   return mapIssue(updated);
 }
 
+async function updateTaskMeta(issueNumber, { assignee, deadline }) {
+  const octokit = await getClient();
+  const { owner, repo } = config.github;
+  const { data: issue } = await octokit.issues.get({ owner, repo, issue_number: issueNumber });
+
+  const updatePayload = { owner, repo, issue_number: issueNumber };
+
+  if (assignee !== undefined) {
+    const current = issue.labels.map(l => (typeof l === 'string' ? l : l.name));
+    const withoutAssignee = current.filter(l => !l.startsWith('assignee:'));
+    if (assignee) {
+      const newLabel = `assignee:${assignee.toLowerCase()}`;
+      await ensureLabels([newLabel]);
+      updatePayload.labels = [...withoutAssignee, newLabel];
+    } else {
+      updatePayload.labels = withoutAssignee;
+    }
+  }
+
+  if (deadline !== undefined) {
+    const body = issue.body || '';
+    const newContent = deadline || 'No especificado';
+    const section = `## Deadline\n${newContent}`;
+    const sectionRe = new RegExp(`## ${escapeRegex('Deadline')}\\n[\\s\\S]*?(?=\\n\\n## |\\n\\n---|$)`);
+    let newBody;
+    if (sectionRe.test(body)) {
+      newBody = body.replace(sectionRe, section);
+    } else {
+      const footerRe = /\n\n---\n\*Creado vía/;
+      newBody = footerRe.test(body)
+        ? body.replace(footerRe, `\n\n${section}$&`)
+        : `${body}\n\n${section}`;
+    }
+    updatePayload.body = newBody;
+  }
+
+  const { data: updated } = await octokit.issues.update(updatePayload);
+  return mapIssue(updated);
+}
+
 async function setTaskArchived(issueNumber, archived) {
   const octokit = await getClient();
   const { owner, repo } = config.github;
@@ -262,5 +302,5 @@ async function createComment(issueNumber, author, text) {
 
 module.exports = {
   createTask, listTasks, updateTaskStatus, uploadScreenshot,
-  updateIssueBodySection, setTaskArchived, listComments, createComment,
+  updateIssueBodySection, updateTaskMeta, setTaskArchived, listComments, createComment,
 };

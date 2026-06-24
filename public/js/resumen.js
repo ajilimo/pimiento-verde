@@ -12,7 +12,7 @@ async function load() {
   try {
     const [{ team }, { tasks }] = await Promise.all([
       fetch('/api/team').then(r => r.json()),
-      fetch('/api/tasks?state=open').then(r => r.json()),
+      fetch('/api/tasks?state=all').then(r => r.json()),
     ]);
     render(tasks || [], team || []);
   } catch (e) {
@@ -27,22 +27,30 @@ function render(tasks, team) {
   renderStatCards(tasks);
   renderPeopleTable(tasks, team);
   renderOverdue(tasks);
+  renderCompleted(tasks);
 }
 
 function renderStatCards(tasks) {
   const grid = document.getElementById('stat-grid');
+  const open = tasks.filter(t => t.state !== 'closed');
   const counts = { pendiente: 0, 'en-desarrollo': 0, 'en-pausa': 0, listo: 0 };
-  tasks.forEach(t => {
+  open.forEach(t => {
     const s = t.status || 'pendiente';
     counts[s] = (counts[s] || 0) + 1;
   });
-  const sinAsignar = tasks.filter(t => !t.assignee).length;
+  const sinAsignar = open.filter(t => !t.assignee).length;
   const today = new Date().toISOString().slice(0, 10);
-  const vencidas = tasks.filter(t => t.deadline && t.deadline !== 'No especificado' && t.deadline < today).length;
+  const vencidas = open.filter(t =>
+    t.deadline && t.deadline !== 'No especificado' &&
+    t.deadline < today &&
+    t.status !== 'listo'
+  ).length;
+  const completadas = tasks.filter(t => t.status === 'listo' || t.state === 'closed').length;
 
   const cards = [
-    { label: 'Total abiertas', value: tasks.length, cls: '' },
-    ...STATUSES.map(s => ({ label: STATUS_LABELS[s], value: counts[s] || 0, cls: `stat-${s}` })),
+    { label: 'Total activas', value: open.length, cls: '' },
+    ...STATUSES.filter(s => s !== 'listo').map(s => ({ label: STATUS_LABELS[s], value: counts[s] || 0, cls: `stat-${s}` })),
+    { label: 'Completadas', value: completadas, cls: 'stat-success' },
     { label: 'Sin asignar', value: sinAsignar, cls: 'stat-warning' },
     { label: 'Vencidas', value: vencidas, cls: 'stat-danger' },
   ];
@@ -57,15 +65,21 @@ function renderStatCards(tasks) {
 
 function renderPeopleTable(tasks, team) {
   const tbody = document.querySelector('#people-table tbody');
+  const open = tasks.filter(t => t.state !== 'closed');
   tbody.innerHTML = team.map(person => {
-    const mine = tasks.filter(t => (t.assignee || '').toLowerCase() === person.toLowerCase());
+    const mine = open.filter(t => (t.assignee || '').toLowerCase() === person.toLowerCase());
     const byStatus = s => mine.filter(t => (t.status || 'pendiente') === s).length;
+    const done = tasks.filter(t =>
+      (t.assignee || '').toLowerCase() === person.toLowerCase() &&
+      (t.status === 'listo' || t.state === 'closed')
+    ).length;
     return `
       <tr>
         <td>${esc(person)}</td>
         <td>${byStatus('pendiente')}</td>
         <td>${byStatus('en-desarrollo')}</td>
         <td>${byStatus('en-pausa')}</td>
+        <td>${done}</td>
         <td><strong>${mine.length}</strong></td>
       </tr>
     `;
@@ -75,7 +89,12 @@ function renderPeopleTable(tasks, team) {
 function renderOverdue(tasks) {
   const today = new Date().toISOString().slice(0, 10);
   const overdue = tasks
-    .filter(t => t.deadline && t.deadline !== 'No especificado' && t.deadline < today)
+    .filter(t =>
+      t.deadline && t.deadline !== 'No especificado' &&
+      t.deadline < today &&
+      t.status !== 'listo' &&
+      t.state !== 'closed'
+    )
     .sort((a, b) => a.deadline.localeCompare(b.deadline));
   const container = document.getElementById('overdue-list');
   if (!overdue.length) {
@@ -86,6 +105,24 @@ function renderOverdue(tasks) {
     <div class="overdue-item">
       <a href="${t.url}" target="_blank" rel="noopener">${esc(t.title)}</a>
       <span class="overdue-meta">${esc(t.client || 'Sin cliente')} · ${esc(t.assignee || 'Sin asignar')} · vencía ${t.deadline}</span>
+    </div>
+  `).join('');
+}
+
+function renderCompleted(tasks) {
+  const container = document.getElementById('completed-list');
+  if (!container) return;
+  const completed = tasks
+    .filter(t => t.status === 'listo' || t.state === 'closed')
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  if (!completed.length) {
+    container.innerHTML = '<p style="color:#8b949e;font-size:0.875rem;">No hay tareas completadas todavía.</p>';
+    return;
+  }
+  container.innerHTML = completed.map(t => `
+    <div class="overdue-item">
+      <a href="${t.url}" target="_blank" rel="noopener">${esc(t.title)}</a>
+      <span class="overdue-meta">${esc(t.client || 'Sin cliente')} · ${esc(t.assignee || 'Sin asignar')}${t.deadline && t.deadline !== 'No especificado' ? ` · fecha: ${t.deadline}` : ''}</span>
     </div>
   `).join('');
 }

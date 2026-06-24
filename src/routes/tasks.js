@@ -39,6 +39,15 @@ router.patch('/:id/status', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+router.patch('/:id/meta', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { assignee, deadline } = req.body;
+    const updated = await gh.updateTaskMeta(id, { assignee, deadline });
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
 router.patch('/:id/archive', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
