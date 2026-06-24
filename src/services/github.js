@@ -231,6 +231,19 @@ async function updateIssueBodySection(issueNumber, marker, newContent) {
   return mapIssue(updated);
 }
 
+async function listTagLabels() {
+  const octokit = await getClient();
+  const { owner, repo } = config.github;
+  const labels = await octokit.paginate(octokit.issues.listLabelsForRepo, {
+    owner, repo, per_page: 100,
+  });
+  return labels
+    .map(l => l.name)
+    .filter(n => n.startsWith('type:'))
+    .map(n => n.slice(5))
+    .sort();
+}
+
 async function updateTaskMeta(issueNumber, { assignee, deadline }) {
   const octokit = await getClient();
   const { owner, repo } = config.github;
@@ -302,5 +315,6 @@ async function createComment(issueNumber, author, text) {
 
 module.exports = {
   createTask, listTasks, updateTaskStatus, uploadScreenshot,
-  updateIssueBodySection, updateTaskMeta, setTaskArchived, listComments, createComment,
+  updateIssueBodySection, updateTaskMeta, setTaskArchived,
+  listComments, createComment, listTagLabels,
 };

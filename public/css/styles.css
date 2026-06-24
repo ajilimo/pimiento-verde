@@ -104,6 +104,14 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .chip.active { background: var(--acento); color: var(--principal); border-color: var(--acento); }
 .chip:hover:not(.active) { border-color: var(--acento-dark); color: var(--acento-dark); }
+.chip-add-row { display: inline-flex; align-items: center; gap: 0.35rem; }
+.chip-add-input {
+  width: 110px; padding: 0.25rem 0.6rem;
+  border: 1px dashed var(--borde); border-radius: 20px;
+  font-size: 0.8rem; font-family: inherit;
+  background: white; color: var(--principal); outline: none;
+}
+.chip-add-input:focus { border-color: var(--acento); border-style: solid; }
 
 /* ── Toast ── */
 .toast {

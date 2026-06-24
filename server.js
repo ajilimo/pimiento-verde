@@ -5,6 +5,7 @@ const express = require('express');
 const parseRouter = require('./src/routes/parse');
 const tasksRouter = require('./src/routes/tasks');
 const config  = require('./src/config');
+const gh      = require('./src/services/github');
 
 const app = express();
 
@@ -14,6 +15,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/parse', parseRouter);
 app.use('/api/tasks', tasksRouter);
 app.get('/api/team',   (req, res) => res.json({ team: config.teamMembers }));
+app.get('/api/tags',   async (req, res, next) => {
+  try { res.json({ tags: await gh.listTagLabels() }); } catch (e) { next(e); }
+});
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.get('/dashboard', (req, res) =>

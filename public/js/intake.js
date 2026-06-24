@@ -1,10 +1,6 @@
 'use strict';
 
-const ALL_TAGS = ['design', 'development', 'maintenance', 'content', 'urgent'];
-const TAG_LABELS = {
-  design: 'Diseño', development: 'Desarrollo',
-  maintenance: 'Mantenimiento', content: 'Contenido', urgent: 'Urgente',
-};
+let knownTags = [];
 let selectedTags = [];
 
 async function init() {
@@ -17,17 +13,28 @@ async function init() {
       sel.appendChild(opt);
     });
   } catch (_) {}
+  try {
+    const { tags } = await fetch('/api/tags').then(r => r.json());
+    knownTags = tags || [];
+  } catch (_) {}
   renderTagChips([]);
+}
+
+function tagLabel(tag) {
+  return tag.charAt(0).toUpperCase() + tag.slice(1).replace(/-/g, ' ');
 }
 
 function renderTagChips(active) {
   selectedTags = [...active];
   const container = document.getElementById('tags-chips');
   container.innerHTML = '';
-  ALL_TAGS.forEach(tag => {
+
+  const allToShow = [...new Set([...knownTags, ...selectedTags])];
+  allToShow.forEach(tag => {
     const chip = document.createElement('span');
     chip.className = 'chip' + (selectedTags.includes(tag) ? ' active' : '');
-    chip.textContent = TAG_LABELS[tag] || tag;
+    chip.textContent = tagLabel(tag);
+    chip.title = tag;
     chip.addEventListener('click', () => {
       const i = selectedTags.indexOf(tag);
       if (i >= 0) selectedTags.splice(i, 1); else selectedTags.push(tag);
@@ -35,6 +42,25 @@ function renderTagChips(active) {
     });
     container.appendChild(chip);
   });
+
+  const addRow = document.createElement('div');
+  addRow.className = 'chip-add-row';
+  addRow.innerHTML = `<input type="text" id="tag-input" class="chip-add-input" placeholder="Nuevo tag...">
+    <button type="button" id="tag-add-btn" class="btn btn-secondary btn-sm">+</button>`;
+  container.appendChild(addRow);
+
+  const input = addRow.querySelector('#tag-input');
+  const btn   = addRow.querySelector('#tag-add-btn');
+  const doAdd = () => {
+    const val = input.value.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!val || selectedTags.includes(val)) { input.value = ''; return; }
+    if (!knownTags.includes(val)) knownTags.push(val);
+    selectedTags.push(val);
+    input.value = '';
+    renderTagChips(selectedTags);
+  };
+  btn.addEventListener('click', doAdd);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
 }
 
 function fillReviewForm(task) {
