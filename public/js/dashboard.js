@@ -285,6 +285,7 @@ function openModal(task) {
         <textarea id="comment-text" rows="2" placeholder="Escribe un comentario..."></textarea>
         <div class="comment-form-row">
           <select id="comment-author" class="comment-author-select">
+            <option value="">— ¿Quién comenta? —</option>
             ${teamMembers.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('')}
           </select>
           <button id="comment-send" class="btn btn-primary btn-sm">Comentar</button>
@@ -411,6 +412,7 @@ async function postComment(task) {
   const body = textEl.value.trim();
   if (!body) return;
   const author = authorEl ? authorEl.value : '';
+  if (!author) { authorEl.focus(); return; }
   sendBtn.disabled = true;
   try {
     await fetch(`/api/tasks/${task.number}/comments`, {
