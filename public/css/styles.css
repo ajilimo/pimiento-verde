@@ -395,12 +395,12 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── Comments feature ── */
 .modal-comments {
-  display: flex; flex-direction: column; gap: 0.75rem;
+  display: flex; flex-direction: column; gap: 1.1rem;
   max-height: 240px; overflow-y: auto; padding-right: 0.25rem;
 }
 .comment {
   background: var(--fondo); border: 1px solid var(--borde);
-  border-radius: 6px; padding: 0.6rem 0.75rem;
+  border-radius: 6px; padding: 0.75rem 0.9rem;
 }
 .comment-head {
   display: flex; justify-content: space-between; align-items: baseline;
