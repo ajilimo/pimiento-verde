@@ -145,7 +145,7 @@ function buildCard(task, today) {
 
   card.innerHTML = `
     <div class="card-top">
-      <a class="card-title" href="${task.url}" target="_blank" rel="noopener">${esc(task.title)}</a>
+      <span class="card-title">${esc(task.title)}</span>
       <div class="status-badge-wrap">
         <span class="status-badge status-${task.status || 'pendiente'}" title="Cambiar estado">
           ${STATUS_LABELS[task.status] || task.status}
@@ -211,7 +211,7 @@ function buildCard(task, today) {
   // Open modal on card click (except status badge and title link)
   card.style.cursor = 'pointer';
   card.addEventListener('click', e => {
-    if (e.target.closest('.status-badge-wrap') || e.target.closest('.card-title')) return;
+    if (e.target.closest('.status-badge-wrap')) return;
     openModal(task);
   });
 

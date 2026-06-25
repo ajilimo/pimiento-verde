@@ -198,9 +198,9 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .card-title {
   font-size: 0.875rem; font-weight: 600; color: var(--principal);
-  line-height: 1.4; flex: 1; display: block;
+  line-height: 1.4; flex: 1; display: block; cursor: pointer;
 }
-.card-title:hover { color: var(--acento-dark); text-decoration: none; }
+.card-title:hover { color: var(--acento-dark); }
 .card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem; }
 .meta-client { font-size: 0.75rem; color: var(--texto-suave); font-weight: 500; }
 .card-assignee {
