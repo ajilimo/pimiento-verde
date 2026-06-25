@@ -154,7 +154,6 @@ document.getElementById('createBtn').addEventListener('click', async () => {
 
     showToast(`Tarea creada: <a href="${data.url}" target="_blank">#${data.number} — ${esc(data.title)}</a>`, 'success');
     document.getElementById('raw').value = '';
-    document.getElementById('clientHint').value = '';
     document.getElementById('screenshotDesc').value = '';
     document.getElementById('screenshotFile').value = '';
     document.getElementById('screenshotFileName').textContent = '';
