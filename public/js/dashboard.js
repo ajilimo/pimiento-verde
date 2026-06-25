@@ -10,6 +10,7 @@ const PRIORITY_LABELS = { high: 'Alta', medium: 'Media', low: 'Baja' };
 let allTasks = [];
 let teamMembers = [];
 let knownTags = [];
+let viewMode = 'kanban';
 
 async function init() {
   try {
@@ -41,6 +42,7 @@ function showArchived() {
 async function loadTasks() {
   document.getElementById('loading').classList.remove('hidden');
   document.getElementById('kanban').classList.add('hidden');
+  document.getElementById('table-view').classList.add('hidden');
   document.getElementById('empty-state').classList.add('hidden');
   try {
     const state = showArchived() ? 'all' : 'open';
@@ -52,7 +54,6 @@ async function loadTasks() {
     console.error('Error cargando tareas', e);
   } finally {
     document.getElementById('loading').classList.add('hidden');
-    document.getElementById('kanban').classList.remove('hidden');
   }
 }
 
@@ -75,10 +76,21 @@ function applyFilters(tasks) {
 }
 
 function renderBoard() {
-  const tasks   = applyFilters(allTasks);
-  const today   = new Date().toISOString().slice(0, 10);
-  let visible   = 0;
+  const tasks = applyFilters(allTasks);
+  const today = new Date().toISOString().slice(0, 10);
+  if (viewMode === 'table') {
+    document.getElementById('kanban').classList.add('hidden');
+    document.getElementById('table-view').classList.remove('hidden');
+    renderTable(tasks, today);
+  } else {
+    document.getElementById('table-view').classList.add('hidden');
+    document.getElementById('kanban').classList.remove('hidden');
+    renderKanban(tasks, today);
+  }
+}
 
+function renderKanban(tasks, today) {
+  let visible = 0;
   STATUSES.forEach(status => {
     const col   = document.getElementById(`col-${status}`);
     const count = document.getElementById(`count-${status}`);
@@ -88,8 +100,38 @@ function renderBoard() {
     col.innerHTML = '';
     group.forEach(task => col.appendChild(buildCard(task, today)));
   });
-
   document.getElementById('empty-state').classList.toggle('hidden', visible > 0);
+}
+
+function renderTable(tasks, today) {
+  const tbody = document.getElementById('table-body');
+  if (!tbody) return;
+  document.getElementById('empty-state').classList.toggle('hidden', tasks.length > 0);
+  tbody.innerHTML = tasks.map(task => {
+    const isOverdue = task.deadline && task.deadline !== 'No especificado' && task.deadline < today;
+    const isArchived = task.state === 'closed';
+    const assigneeCell = task.assignee
+      ? `<span class="table-assignee"><span class="avatar avatar-sm" style="background:${avatarColor(task.assignee)}">${initials(task.assignee)}</span>${esc(task.assignee)}</span>`
+      : `<span class="muted">—</span>`;
+    const deadlineCell = task.deadline && task.deadline !== 'No especificado'
+      ? `<span class="${isOverdue ? 'overdue' : ''}">${task.deadline}</span>`
+      : `<span class="muted">—</span>`;
+    return `<tr class="table-row${isArchived ? ' archived' : ''}" data-number="${task.number}">
+      <td class="table-title-cell">${esc(task.title)}${isArchived ? ' <span class="archived-badge">Archivada</span>' : ''}</td>
+      <td>${esc(task.client || '') || '<span class="muted">—</span>'}</td>
+      <td>${assigneeCell}</td>
+      <td><span class="status-badge status-${task.status || 'pendiente'}">${STATUS_LABELS[task.status] || task.status}</span></td>
+      <td>${deadlineCell}</td>
+      <td><span class="priority-badge priority-${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span></td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('.table-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const num = Number(tr.dataset.number);
+      const task = allTasks.find(x => x.number === num);
+      if (task) openModal(task);
+    });
+  });
 }
 
 function buildCard(task, today) {
@@ -179,6 +221,8 @@ function buildCard(task, today) {
 function openModal(task) {
   const today = new Date().toISOString().slice(0, 10);
   const isOverdue = task.deadline && task.deadline !== 'No especificado' && task.deadline < today;
+  const isArchived = task.state === 'closed';
+  const canEdit = task.status === 'pendiente' && !isArchived;
 
   document.getElementById('modal-title').textContent = task.title;
 
@@ -187,8 +231,6 @@ function openModal(task) {
       <span class="avatar" style="background:${avatarColor(task.assignee)}">${initials(task.assignee)}</span>
       ${esc(task.assignee)}
     </span>` : '';
-
-  const isArchived = task.state === 'closed';
 
   document.getElementById('modal-body').innerHTML = `
     <div class="modal-meta">
@@ -200,6 +242,7 @@ function openModal(task) {
       ${task.deadline && task.deadline !== 'No especificado'
         ? `<span class="deadline${isOverdue ? ' overdue' : ''}">📅 ${task.deadline}${isOverdue ? ' · Vencida' : ''}</span>` : ''}
     </div>
+    ${canEdit ? `
     <div class="meta-edit-section">
       <div class="modal-section-title">Editar detalles</div>
       <div class="meta-edit-row">
@@ -216,7 +259,7 @@ function openModal(task) {
         </label>
         <button id="save-meta-btn" class="btn btn-primary btn-sm">Guardar</button>
       </div>
-    </div>
+    </div>` : (!isArchived && task.status !== 'listo' ? `<p class="modal-hint">Para editar, usá el botón Rechazar para volver a Pendiente.</p>` : '')}
     ${task.description
       ? `<div class="modal-description">${esc(task.description)}</div>`
       : '<p class="modal-empty">Sin descripción.</p>'}
@@ -257,19 +300,19 @@ function openModal(task) {
     </div>
   `;
 
-  renderSubtasks(task);
+  renderSubtasks(task, canEdit);
   wireComments(task);
   wireArchive(task);
   wireReject(task);
   wireMeta(task);
-  wireTags(task);
+  wireTags(task, canEdit);
 
   document.getElementById('task-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 
 // ── Subtareas ──
-function renderSubtasks(task) {
+function renderSubtasks(task, canEdit) {
   const container = document.getElementById('modal-subtasks');
   if (!container) return;
   const subs = task.subtasks || [];
@@ -277,37 +320,38 @@ function renderSubtasks(task) {
     <div class="subtask-list">
       ${subs.map((s, i) => `
         <label class="subtask-row${s.done ? ' done' : ''}">
-          <input type="checkbox" data-idx="${i}" ${s.done ? 'checked' : ''}>
+          <input type="checkbox" data-idx="${i}" ${s.done ? 'checked' : ''}${canEdit ? '' : ' disabled'}>
           <span>${esc(s.text)}</span>
         </label>`).join('') || '<p class="comment-empty">Sin subtareas.</p>'}
     </div>
-    <div class="subtask-add">
+    ${canEdit ? `<div class="subtask-add">
       <input type="text" id="subtask-new" placeholder="Nueva subtarea...">
       <button id="subtask-add-btn" class="btn btn-secondary btn-sm">Añadir</button>
-    </div>
+    </div>` : ''}
   `;
 
-  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const idx = Number(cb.dataset.idx);
-      task.subtasks[idx].done = cb.checked;
-      saveSubtasks(task);
+  if (canEdit) {
+    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const idx = Number(cb.dataset.idx);
+        task.subtasks[idx].done = cb.checked;
+        saveSubtasks(task, canEdit);
+      });
     });
-  });
-
-  const addBtn = container.querySelector('#subtask-add-btn');
-  const addInput = container.querySelector('#subtask-new');
-  const doAdd = () => {
-    const text = addInput.value.trim();
-    if (!text) return;
-    task.subtasks = (task.subtasks || []).concat([{ text, done: false }]);
-    saveSubtasks(task);
-  };
-  addBtn.addEventListener('click', doAdd);
-  addInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+    const addBtn = container.querySelector('#subtask-add-btn');
+    const addInput = container.querySelector('#subtask-new');
+    const doAdd = () => {
+      const text = addInput.value.trim();
+      if (!text) return;
+      task.subtasks = (task.subtasks || []).concat([{ text, done: false }]);
+      saveSubtasks(task, canEdit);
+    };
+    addBtn.addEventListener('click', doAdd);
+    addInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+  }
 }
 
-async function saveSubtasks(task) {
+async function saveSubtasks(task, canEdit) {
   try {
     const res = await fetch(`/api/tasks/${task.number}/subtasks`, {
       method: 'PATCH',
@@ -319,7 +363,7 @@ async function saveSubtasks(task) {
     task.progress = updated.progress;
     const t = allTasks.find(x => x.number === task.number);
     if (t) { t.subtasks = updated.subtasks; t.progress = updated.progress; }
-    renderSubtasks(task);
+    renderSubtasks(task, canEdit);
     renderBoard();
   } catch (err) { console.error('Error guardando subtareas', err); }
 }
@@ -384,11 +428,20 @@ async function postComment(task) {
 }
 
 // ── Editar tags ──
-function wireTags(task) {
+function wireTags(task, canEdit) {
   const container = document.getElementById('modal-tags');
   if (!container) return;
 
-  let localTags = [...(task.tags || [])];
+  const currentTags = task.tags || [];
+
+  if (!canEdit) {
+    container.innerHTML = currentTags.length
+      ? `<div class="tags-chips">${currentTags.map(t => `<span class="chip active" style="cursor:default">${esc(tagLabel(t))}</span>`).join('')}</div>`
+      : '<p class="comment-empty">Sin tags.</p>';
+    return;
+  }
+
+  let localTags = [...currentTags];
   let localKnown = [...new Set([...knownTags, ...localTags])];
 
   function renderTagsEdit() {
@@ -615,6 +668,18 @@ document.getElementById('filterClient').addEventListener('input', () => {
   debounce = setTimeout(renderBoard, 280);
 });
 document.getElementById('refreshBtn').addEventListener('click', loadTasks);
+document.getElementById('viewKanban').addEventListener('click', () => {
+  viewMode = 'kanban';
+  document.getElementById('viewKanban').classList.add('active-view');
+  document.getElementById('viewTable').classList.remove('active-view');
+  renderBoard();
+});
+document.getElementById('viewTable').addEventListener('click', () => {
+  viewMode = 'table';
+  document.getElementById('viewTable').classList.add('active-view');
+  document.getElementById('viewKanban').classList.remove('active-view');
+  renderBoard();
+});
 const showArchivedEl = document.getElementById('showArchived');
 if (showArchivedEl) showArchivedEl.addEventListener('change', loadTasks);
 

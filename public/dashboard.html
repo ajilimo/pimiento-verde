@@ -27,7 +27,13 @@
   <main class="container wide">
     <div class="dashboard-header">
       <h1>Dashboard</h1>
-      <button id="refreshBtn" class="btn btn-secondary btn-sm">↻ Actualizar</button>
+      <div style="display:flex;gap:0.5rem;align-items:center">
+        <div class="view-toggle">
+          <button id="viewKanban" class="view-btn active-view">Kanban</button>
+          <button id="viewTable"  class="view-btn">Tabla</button>
+        </div>
+        <button id="refreshBtn" class="btn btn-secondary btn-sm">↻ Actualizar</button>
+      </div>
     </div>
 
     <div class="filters">
@@ -77,6 +83,22 @@
         </div>
         <div class="kanban-cards" id="col-listo"></div>
       </div>
+    </div>
+
+    <div id="table-view" class="hidden">
+      <table class="tasks-table">
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Cliente</th>
+            <th>Responsable</th>
+            <th>Estado</th>
+            <th>Fecha límite</th>
+            <th>Prioridad</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
     </div>
 
     <div id="empty-state" class="empty-state hidden">

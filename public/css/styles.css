@@ -137,6 +137,32 @@ textarea { resize: vertical; min-height: 80px; }
 .filters { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
 .filters input, .filters select { max-width: 220px; }
 
+/* ── View toggle ── */
+.view-toggle { display: flex; border: 1px solid var(--borde); border-radius: 6px; overflow: hidden; }
+.view-btn {
+  padding: 0.3rem 0.75rem; font-size: 0.8rem; font-family: 'Poppins', sans-serif;
+  border: none; background: white; color: var(--texto-suave); cursor: pointer; transition: all 0.15s;
+}
+.view-btn.active-view { background: var(--principal); color: white; }
+.view-btn:hover:not(.active-view) { background: var(--fondo); color: var(--principal); }
+
+/* ── Table view ── */
+.tasks-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.tasks-table th {
+  text-align: left; padding: 0.5rem 0.75rem;
+  font-size: 0.75rem; font-weight: 600; color: var(--texto-suave);
+  border-bottom: 2px solid var(--borde); white-space: nowrap;
+}
+.tasks-table td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--borde); vertical-align: middle; }
+.table-row { cursor: pointer; transition: background 0.1s; }
+.table-row:hover { background: var(--fondo); }
+.table-row.archived td { opacity: 0.55; }
+.table-title-cell { max-width: 280px; }
+.table-assignee { display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; }
+.avatar-sm { width: 22px; height: 22px; font-size: 0.6rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: white; font-weight: 700; flex-shrink: 0; }
+.muted { color: var(--texto-suave); }
+.modal-hint { font-size: 0.78rem; color: var(--texto-suave); font-style: italic; margin: 0.25rem 0 0.5rem; }
+
 /* ── Kanban board ── */
 .kanban {
   display: grid; grid-template-columns: repeat(4, 1fr);
