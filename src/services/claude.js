@@ -58,7 +58,27 @@ async function parseTask(rawText, { clientHint, screenshotDesc } = {}) {
     generationConfig: { responseMimeType: 'application/json' },
   });
 
-  const result = await model.generateContent(prompt);
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (e) {
+    // Log full detail to server logs (Render → Logs) for diagnosis
+    console.error('[Gemini error]', {
+      model: config.model,
+      status: e.status,
+      statusText: e.statusText,
+      message: e.message,
+    });
+    const status = e.status || 500;
+    const err = new Error(
+      status === 403
+        ? 'Gemini rechazó la solicitud (403). Revisá que la API key sea válida y que la Generative Language API esté habilitada para el proyecto.'
+        : `Error de Gemini: ${e.message}`
+    );
+    err.status = status;
+    throw err;
+  }
+
   const text = result.response.text().trim();
   const data = JSON.parse(text);
   return normalize(data, config.teamMembers);
