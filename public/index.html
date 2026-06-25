@@ -72,7 +72,8 @@
       <div class="form-row">
         <div class="form-group">
           <label for="client">Cliente</label>
-          <input type="text" id="client">
+          <input type="text" id="client" list="clients-list" autocomplete="off">
+          <datalist id="clients-list"></datalist>
         </div>
         <div class="form-group">
           <label for="assignee">Responsable</label>
@@ -98,6 +99,10 @@
       <div class="form-group">
         <label for="description">Descripción</label>
         <textarea id="description" rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="deliverable">Entregable esperado</label>
+        <input type="text" id="deliverable" placeholder="Ej: Correo enviado al cliente, Informe en PDF…">
       </div>
       <div class="form-group">
         <label>Tags</label>

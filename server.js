@@ -15,8 +15,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/parse', parseRouter);
 app.use('/api/tasks', tasksRouter);
 app.get('/api/team',   (req, res) => res.json({ team: config.teamMembers }));
-app.get('/api/tags',   async (req, res, next) => {
+app.get('/api/tags',    async (req, res, next) => {
   try { res.json({ tags: await gh.listTagLabels() }); } catch (e) { next(e); }
+});
+app.get('/api/clients', async (req, res, next) => {
+  try { res.json({ clients: await gh.listClientLabels() }); } catch (e) { next(e); }
 });
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

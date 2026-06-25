@@ -5,17 +5,24 @@ let selectedTags = [];
 
 async function init() {
   try {
-    const { team } = await fetch('/api/team').then(r => r.json());
+    const [{ team }, { tags }, { clients }] = await Promise.all([
+      fetch('/api/team').then(r => r.json()),
+      fetch('/api/tags').then(r => r.json()),
+      fetch('/api/clients').then(r => r.json()),
+    ]);
     const sel = document.getElementById('assignee');
-    team.forEach(name => {
+    (team || []).forEach(name => {
       const opt = document.createElement('option');
       opt.value = name; opt.textContent = name;
       sel.appendChild(opt);
     });
-  } catch (_) {}
-  try {
-    const { tags } = await fetch('/api/tags').then(r => r.json());
     knownTags = tags || [];
+    const dl = document.getElementById('clients-list');
+    if (dl) (clients || []).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      dl.appendChild(opt);
+    });
   } catch (_) {}
   renderTagChips([]);
 }
@@ -71,6 +78,7 @@ function fillReviewForm(task) {
   document.getElementById('priority').value    = task.priority || 'medium';
   document.getElementById('deadline').value    = task.deadline || '';
   document.getElementById('description').value = task.description || '';
+  document.getElementById('deliverable').value = task.deliverable || '';
   renderTagChips(task.tags || []);
 }
 
@@ -136,6 +144,7 @@ document.getElementById('createBtn').addEventListener('click', async () => {
     formData.append('priority', document.getElementById('priority').value);
     formData.append('deadline', document.getElementById('deadline').value);
     formData.append('description', document.getElementById('description').value.trim());
+    formData.append('deliverable', document.getElementById('deliverable').value.trim());
     formData.append('tags', JSON.stringify(selectedTags));
     formData.append('source', document.getElementById('source').value);
     const file = document.getElementById('screenshotFile').files[0];

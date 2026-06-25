@@ -220,6 +220,9 @@ function openModal(task) {
     ${task.description
       ? `<div class="modal-description">${esc(task.description)}</div>`
       : '<p class="modal-empty">Sin descripción.</p>'}
+    ${task.deliverable && task.deliverable !== 'No especificado'
+      ? `<div class="modal-deliverable"><span class="deliverable-label">Entregable:</span> ${esc(task.deliverable)}</div>`
+      : ''}
     <div>
       <div class="modal-section-title">Tags</div>
       <div id="modal-tags"></div>
@@ -248,6 +251,7 @@ function openModal(task) {
 
     <div class="modal-footer">
       <a href="${task.url}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Ver en GitHub ↗</a>
+      ${task.status !== 'pendiente' && !isArchived ? `<button id="reject-btn" class="btn btn-danger btn-sm">Rechazar</button>` : ''}
       <button id="archive-btn" class="btn btn-secondary btn-sm">${isArchived ? 'Reabrir' : 'Archivar'}</button>
       <button class="btn btn-primary btn-sm" onclick="closeModal()">Cerrar</button>
     </div>
@@ -256,6 +260,7 @@ function openModal(task) {
   renderSubtasks(task);
   wireComments(task);
   wireArchive(task);
+  wireReject(task);
   wireMeta(task);
   wireTags(task);
 
@@ -506,6 +511,57 @@ function wireArchive(task) {
       console.error('Error archivando', err);
       btn.disabled = false;
     }
+  });
+}
+
+// ── Rechazar ──
+function wireReject(task) {
+  const btn = document.getElementById('reject-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    btn.style.display = 'none';
+    const footer = btn.closest('.modal-footer');
+    const form = document.createElement('div');
+    form.className = 'reject-form';
+    form.innerHTML = `
+      <textarea id="reject-reason" rows="2" placeholder="Motivo del rechazo (opcional)..."></textarea>
+      <div class="reject-actions">
+        <button id="reject-confirm" class="btn btn-danger btn-sm">Confirmar rechazo</button>
+        <button id="reject-cancel" class="btn btn-secondary btn-sm">Cancelar</button>
+      </div>`;
+    footer.insertBefore(form, footer.firstChild);
+
+    document.getElementById('reject-cancel').addEventListener('click', () => {
+      form.remove();
+      btn.style.display = '';
+    });
+
+    document.getElementById('reject-confirm').addEventListener('click', async () => {
+      const reason = document.getElementById('reject-reason').value.trim();
+      const confirmBtn = document.getElementById('reject-confirm');
+      confirmBtn.disabled = true;
+      try {
+        const authorSel = document.getElementById('comment-author');
+        const author = authorSel ? authorSel.value : 'Equipo';
+        const commentBody = reason ? `Rechazada: ${reason}` : 'Tarea rechazada — vuelve a pendiente.';
+        await fetch(`/api/tasks/${task.number}/comments`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ author, body: commentBody }),
+        });
+        await fetch(`/api/tasks/${task.number}/status`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'pendiente' }),
+        });
+        const t = allTasks.find(x => x.number === task.number);
+        if (t) t.status = 'pendiente';
+        renderBoard();
+        closeModal();
+        openModal(Object.assign({}, task, { status: 'pendiente' }));
+      } catch (err) {
+        console.error('Error rechazando', err);
+        confirmBtn.disabled = false;
+      }
+    });
   });
 }
 

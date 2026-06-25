@@ -4,7 +4,6 @@ const config = require('../config');
 const genAI = new GoogleGenerativeAI(config.geminiApiKey);
 
 const ALLOWED_PRIORITIES = ['high', 'medium', 'low'];
-const ALLOWED_TAGS = ['design', 'development', 'maintenance', 'content', 'urgent'];
 
 function buildPrompt(today, teamList, rawText, clientHint, screenshotDesc) {
   let content = `Eres un asistente que convierte mensajes desordenados (de WhatsApp o email, en español, inglés o spanglish) en una tarea estructurada para una agencia de diseño web.
@@ -20,7 +19,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con EXACTAMENTE estas claves:
   "priority":    "high" | "medium" | "low" (deduce de palabras de urgencia: "urgente", "ya", "ASAP", "para hoy" => high),
   "deadline":    string fecha ISO "YYYY-MM-DD" o null (resuelve fechas relativas usando la fecha de hoy),
   "description": string (reescritura limpia y profesional de lo que hay que hacer),
-  "tags":        array de strings de este conjunto: ["design","development","maintenance","content","urgent"]
+  "deliverable": string o null (resultado concreto esperado: qué se entrega al terminar la tarea, ej. "Correo enviado al cliente", "Informe en PDF", "Formulario funcionando"),
+  "tags":        array de strings cortos en minúsculas con guiones (ej. ["diseño","desarrollo","marketing","administrativo"]) — usa los que mejor describan el tipo de trabajo
 }
 
 Reglas:
@@ -38,13 +38,14 @@ ${rawText}`;
 
 function normalize(data, teamMembers) {
   return {
-    title: (data.title || 'Sin título').slice(0, 60),
-    client: data.client || null,
-    assignee: teamMembers.includes(data.assignee) ? data.assignee : null,
-    priority: ALLOWED_PRIORITIES.includes(data.priority) ? data.priority : 'medium',
-    deadline: data.deadline || null,
+    title:       (data.title || 'Sin título').slice(0, 60),
+    client:      data.client || null,
+    assignee:    teamMembers.includes(data.assignee) ? data.assignee : null,
+    priority:    ALLOWED_PRIORITIES.includes(data.priority) ? data.priority : 'medium',
+    deadline:    data.deadline || null,
     description: data.description || '',
-    tags: Array.isArray(data.tags) ? data.tags.filter(t => ALLOWED_TAGS.includes(t)) : [],
+    deliverable: data.deliverable || null,
+    tags:        Array.isArray(data.tags) ? data.tags.map(t => String(t).toLowerCase().replace(/\s+/g, '-')).filter(Boolean) : [],
   };
 }
 

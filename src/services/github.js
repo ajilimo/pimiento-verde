@@ -31,12 +31,15 @@ function buildLabels(task) {
   return labels;
 }
 
-function buildIssueBody({ client, description, deadline, source, screenshotUrl }) {
+function buildIssueBody({ client, description, deliverable, deadline, source, screenshotUrl }) {
   let body = `## Cliente
 ${client || 'No especificado'}
 
 ## Descripción
 ${description || ''}
+
+## Entregable
+${deliverable || 'No especificado'}
 
 ## Deadline
 ${deadline || 'No especificado'}
@@ -86,6 +89,7 @@ function mapIssue(issue) {
     deadline:    bodyField('Deadline'),
     status:      pick('status:')      || 'pendiente',
     description: descMatch ? descMatch[1].trim() : null,
+    deliverable: bodyField('Entregable'),
     tags,
     subtasks,
     progress,
@@ -231,6 +235,19 @@ async function updateIssueBodySection(issueNumber, marker, newContent) {
   return mapIssue(updated);
 }
 
+async function listClientLabels() {
+  const octokit = await getClient();
+  const { owner, repo } = config.github;
+  const labels = await octokit.paginate(octokit.issues.listLabelsForRepo, {
+    owner, repo, per_page: 100,
+  });
+  return labels
+    .map(l => l.name)
+    .filter(n => n.startsWith('client:'))
+    .map(n => n.slice(7).replace(/-/g, ' '))
+    .sort();
+}
+
 async function listTagLabels() {
   const octokit = await getClient();
   const { owner, repo } = config.github;
@@ -326,5 +343,5 @@ async function createComment(issueNumber, author, text) {
 module.exports = {
   createTask, listTasks, updateTaskStatus, uploadScreenshot,
   updateIssueBodySection, updateTaskMeta, setTaskArchived,
-  listComments, createComment, listTagLabels,
+  listComments, createComment, listTagLabels, listClientLabels,
 };
