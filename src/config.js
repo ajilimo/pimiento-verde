@@ -11,12 +11,12 @@ const teamMembers = (process.env.TEAM_MEMBERS || 'John,Maria,Carlos')
 
 module.exports = {
   port: process.env.PORT || 3000,
-  geminiApiKey: required('GEMINI_API_KEY'),
+  groqApiKey: required('GROQ_API_KEY'),
   github: {
     token: required('GITHUB_TOKEN'),
     owner: required('GITHUB_OWNER'),
     repo: required('GITHUB_REPO'),
   },
   teamMembers,
-  model: 'gemini-2.5-flash',
+  model: 'llama-3.3-70b-versatile',
 };

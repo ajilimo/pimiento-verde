@@ -1,7 +1,7 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const config = require('../config');
 
-const genAI = new GoogleGenerativeAI(config.geminiApiKey);
+const groq = new Groq({ apiKey: config.groqApiKey });
 
 const ALLOWED_PRIORITIES = ['high', 'medium', 'low'];
 
@@ -53,33 +53,31 @@ async function parseTask(rawText, { clientHint, screenshotDesc } = {}) {
   const today = new Date().toISOString().slice(0, 10);
   const prompt = buildPrompt(today, config.teamMembers, rawText, clientHint, screenshotDesc);
 
-  const model = genAI.getGenerativeModel({
-    model: config.model,
-    generationConfig: { responseMimeType: 'application/json' },
-  });
-
-  let result;
+  let completion;
   try {
-    result = await model.generateContent(prompt);
+    completion = await groq.chat.completions.create({
+      model: config.model,
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
+    });
   } catch (e) {
-    // Log full detail to server logs (Render → Logs) for diagnosis
-    console.error('[Gemini error]', {
+    console.error('[Groq error]', {
       model: config.model,
       status: e.status,
-      statusText: e.statusText,
       message: e.message,
     });
     const status = e.status || 500;
     const err = new Error(
-      status === 403
-        ? 'Gemini rechazó la solicitud (403). Revisá que la API key sea válida y que la Generative Language API esté habilitada para el proyecto.'
-        : `Error de Gemini: ${e.message}`
+      status === 401
+        ? 'Groq rechazó la solicitud (401). Revisá que la API key sea válida en las variables de entorno.'
+        : `Error de Groq: ${e.message}`
     );
     err.status = status;
     throw err;
   }
 
-  const text = result.response.text().trim();
+  const text = completion.choices[0].message.content.trim();
   const data = JSON.parse(text);
   return normalize(data, config.teamMembers);
 }
