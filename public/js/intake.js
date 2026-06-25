@@ -106,7 +106,6 @@ document.getElementById('parseBtn').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text,
-        client:        document.getElementById('clientHint').value.trim() || undefined,
         screenshotDesc: document.getElementById('screenshotDesc').value.trim() || undefined,
       }),
     });
@@ -146,7 +145,6 @@ document.getElementById('createBtn').addEventListener('click', async () => {
     formData.append('description', document.getElementById('description').value.trim());
     formData.append('deliverable', document.getElementById('deliverable').value.trim());
     formData.append('tags', JSON.stringify(selectedTags));
-    formData.append('source', document.getElementById('source').value);
     const file = document.getElementById('screenshotFile').files[0];
     if (file) formData.append('screenshot', file);
 

@@ -31,7 +31,7 @@ function buildLabels(task) {
   return labels;
 }
 
-function buildIssueBody({ client, description, deliverable, deadline, source, screenshotUrl }) {
+function buildIssueBody({ client, description, deliverable, deadline, screenshotUrl }) {
   let body = `## Cliente
 ${client || 'No especificado'}
 
@@ -42,10 +42,7 @@ ${description || ''}
 ${deliverable || 'No especificado'}
 
 ## Deadline
-${deadline || 'No especificado'}
-
-## Origen
-${source || 'Manual'}`;
+${deadline || 'No especificado'}`;
 
   if (screenshotUrl) {
     body += `\n\n## Captura\n![captura](${screenshotUrl})`;
@@ -93,7 +90,6 @@ function mapIssue(issue) {
     tags,
     subtasks,
     progress,
-    source:      bodyField('Origen'),
     screenshotUrl: screenshotMatch ? screenshotMatch[1] : null,
     state:       issue.state,
     url:         issue.html_url,
